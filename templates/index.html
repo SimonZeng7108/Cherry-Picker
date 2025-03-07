@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cherry Picker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/logo/cherry-154483.svg" type="image/svg+xml">
+</head>
+<body class="main-page">
+    <div class="container-fluid">
+        <!-- Magnifier container will be inserted here by JavaScript -->
+        
+        <header class="mb-4 mt-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <img src="/logo/cherry-154483.svg" alt="Cherry Picker Logo" class="app-logo me-3">
+                        <div>
+                            <h1 class="display-5 fw-bold">Cherry Picker</h1>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
+                        <button id="folder-select-btn" class="btn btn-outline-primary me-3">
+                            <i class="fas fa-folder me-1"></i> Change Folders
+                        </button>
+                        <div class="progress-container">
+                            <div class="progress" style="height: 10px;">
+                                <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="progress-handle" class="progress-handle"></div>
+                            <div id="progress-tooltip" class="progress-tooltip"></div>
+                            <div class="mt-1">
+                                <small id="progress-text" class="text-muted">0 / 0 images</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Keyboard shortcuts:</strong> 
+                    Press <kbd>Y</kbd> to select and move to next image, 
+                    <kbd>N</kbd> to skip, 
+                    <kbd>←</kbd> to go to previous image, 
+                    <kbd>→</kbd> to go to next image,
+                    <kbd>C</kbd> to crop and save a patch at cursor position.
+                    Hover over any image to see magnified views at the top.
+                    <hr>
+                    <strong>Save Directories:</strong> Key <kbd>Y</kbd> saved image directory: <span class="fw-bold">Cherry</span>, 
+                    Key <kbd>C</kbd> + <i class="fas fa-mouse"></i> <i class="fas fa-arrow-pointer"></i> saved patch directory: <span class="fw-bold">Cherry_prune</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Crop and Magnification Settings -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <!-- Magnification setting (moved to be first) -->
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <label for="magnification" class="form-label mb-0">Magnification:</label>
+                            </div>
+                            <div class="col-auto">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="magnification" class="form-control" value="4" min="1" max="10" step="0.5">
+                                    <span class="input-group-text">×</span>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">Control the zoom level for the magnified view (1-10×).</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Patch Size setting (moved to be second) -->
+                        <div class="row align-items-center mt-2">
+                            <div class="col-auto">
+                                <label for="crop-width" class="form-label mb-0">Patch Size:</label>
+                            </div>
+                            <div class="col-auto">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="crop-width" class="form-control" value="100" min="10" max="500">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="crop-height" class="form-control" value="100" min="10" max="500">
+                                    <span class="input-group-text">pixels</span>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">Press <kbd>C</kbd> to activate crop mode, then click on an image to save patches to the Cherry_prune folder.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- No folders selected message -->
+        <div id="no-folders-message" class="alert alert-warning text-center my-5 d-none">
+            <h4>No folders have been selected for comparison.</h4>
+            <p>Please select folders to start comparing images.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/folder_select'">
+                <i class="fas fa-folder-open me-2"></i>Select Folders
+            </button>
+        </div>
+
+        <div id="image-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+            <!-- Images will be loaded here -->
+            <div class="col placeholder-glow">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-img-top placeholder" style="height: 200px;"></div>
+                    <div class="card-body">
+                        <h5 class="card-title placeholder"></h5>
+                    </div>
+                </div>
+            </div>
+            <!-- Repeat placeholder for loading state -->
+        </div>
+
+        <div id="end-message" class="alert alert-success text-center my-5 d-none">
+            <h4>All images have been reviewed!</h4>
+            <p>You can find your selected images in the "Cherry" folder.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/folder_select'">
+                <i class="fas fa-folder-open me-2"></i>Select New Folders
+            </button>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col text-center">
+                <div class="btn-group btn-group-lg" role="group">
+                    <button id="select-btn" class="btn btn-success btn-lg px-5">
+                        <i class="fas fa-check-circle me-2"></i> Select (Y)
+                    </button>
+                    <button id="skip-btn" class="btn btn-secondary btn-lg px-5">
+                        <i class="fas fa-forward me-2"></i> Skip (N)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col">
+                <div class="d-flex justify-content-between">
+                    <button id="prev-btn" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Previous (←)
+                    </button>
+                    <button id="next-btn" class="btn btn-outline-secondary">
+                        Next (→)<i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center text-muted py-3 mt-5 border-top">
+            <div class="container">
+                <p class="mb-1">Image Cherry Picker - A tool for comparing and selecting high-quality images</p>
+                <small>&copy; 2023-2024 - Open Source</small>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/script.js"></script>
+</body>
+</html> 

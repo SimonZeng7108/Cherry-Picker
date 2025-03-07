@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folder Selection - Cherry Picker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="/logo/cherry-154483.svg" type="image/svg+xml">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            padding-bottom: 2rem;
+        }
+        
+        .folder-container {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            min-height: 150px;
+        }
+        
+        .folder-container.drag-over {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-color: #28a745;
+        }
+        
+        .file-drop-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 10px;
+            transition: all 0.3s;
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        .file-drop-area.drag-over {
+            background-color: rgba(0, 123, 255, 0.1);
+            border-color: #0056b3;
+        }
+        
+        .selected-folder {
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin: 5px;
+            display: inline-block;
+            position: relative;
+        }
+        
+        .selected-folder.pending {
+            background-color: #fff4d9;
+            border: 1px dashed #ffc107;
+        }
+        
+        .selected-folder .remove-btn {
+            margin-left: 8px;
+            cursor: pointer;
+            color: #dc3545;
+        }
+        
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .upload-btn-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .app-logo {
+            height: 50px;
+            width: auto;
+        }
+        
+        .header-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header-text {
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body class="folder-select-page">
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col">
+                <div class="header-container">
+                    <img src="/logo/cherry-154483.svg" alt="Cherry Picker Logo" class="app-logo">
+                    <div class="header-text">
+                        <h1 class="display-5 fw-bold">Cherry Picker</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Step 1: Select Folders</h5>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> Place this application in the same parent folder as the image folders you want to compare.
+                            <br><br>
+                            <strong>Important:</strong> Select your Ground Truth folder first - this will be used as the source for the full file name list.
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col">
+                                <div class="folder-container" id="folder-drop-area">
+                                    <div class="text-center mb-3">
+                                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                                        <p>Select up to 8 folders to compare</p>
+                                        <p>Drag and drop folders here, or select a folder from your device</p>
+                                        <div class="mt-3">
+                                            <div class="upload-btn-wrapper">
+                                                <button class="btn btn-outline-secondary">
+                                                    <i class="fas fa-folder me-2"></i>Browse Folders
+                                                </button>
+                                                <input type="file" id="folder-input" webkitdirectory directory multiple />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="selected-folders-container" class="mb-3">
+                                        <!-- Selected folders will appear here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col">
+                                <h6>Available Folders in Current Directory:</h6>
+                                <div id="available-folders-container" class="mb-3">
+                                    <div class="d-flex justify-content-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button id="start-btn" class="btn btn-success btn-lg px-5" disabled>
+                                <i class="fas fa-play-circle me-2"></i>Start Comparing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center text-muted py-3 mt-5">
+            <div class="container">
+                <p class="mb-1">Image Cherry Picker - A tool for comparing and selecting high-quality images</p>
+                <small>&copy; 2023-2024 - Open Source</small>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const folderDropArea = document.getElementById('folder-drop-area');
+            const selectedFoldersContainer = document.getElementById('selected-folders-container');
+            const availableFoldersContainer = document.getElementById('available-folders-container');
+            const startBtn = document.getElementById('start-btn');
+            
+            // Store selected folders and uploaded file list
+            let selectedFolders = [];
+            
+            // Fetch available folders
+            fetchAvailableFolders();
+            
+            // Handle folder input change (directory selection)
+            document.getElementById('folder-input').addEventListener('change', function(e) {
+                handleFolderSelection(e.target.files);
+            });
+            
+            // Handle folder drag and drop events
+            folderDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                folderDropArea.classList.add('drag-over');
+            });
+            
+            folderDropArea.addEventListener('dragleave', function() {
+                folderDropArea.classList.remove('drag-over');
+            });
+            
+            folderDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                folderDropArea.classList.remove('drag-over');
+                
+                // Get all items that were dropped
+                const items = e.dataTransfer.items;
+                if (!items) return;
+                
+                // Check for browser folder support (webkitGetAsEntry)
+                if (items[0].webkitGetAsEntry) {
+                    // Modern file API with directory support
+                    const entries = Array.from(items)
+                        .map(item => item.webkitGetAsEntry())
+                        .filter(entry => entry && entry.isDirectory);
+                    
+                    if (entries.length > 0) {
+                        // Process each dropped folder
+                        handleDroppedFolders(entries);
+                    } else {
+                        // No valid folders found
+                        alert('No valid folders found. Please drop folders, not files.');
+                    }
+                } else if (e.dataTransfer.files.length > 0) {
+                    // Fallback for browsers with basic file API
+                    handleFolderSelection(e.dataTransfer.files);
+                } else {
+                    alert('Your browser does not support folder drag and drop. Please use the folder selector button or enter the path manually.');
+                }
+            });
+            
+            // Function to handle dropped folders using webkitGetAsEntry
+            function handleDroppedFolders(entries) {
+                // Process each directory entry
+                for (const entry of entries) {
+                    if (entry.isDirectory) {
+                        // Create a temporary indicator with loading spinner
+                        const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                        const tempIndicator = document.createElement('div');
+                        tempIndicator.className = 'selected-folder pending';
+                        tempIndicator.id = tempId;
+                        tempIndicator.innerHTML = `
+                            <span>${entry.name}</span>
+                            <span class="ms-2">
+                                <i class="fas fa-spinner fa-spin"></i> Processing...
+                            </span>
+                        `;
+                        selectedFoldersContainer.appendChild(tempIndicator);
+                        
+                        // Use the server's find_folder API with additional metadata
+                        fetch('/api/find_folder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                folder_name: entry.name,
+                                parent_dir: window.location.pathname.includes('/folder_select') ? 'web_root' : null
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Remove the temporary indicator
+                            const tempElement = document.getElementById(tempId);
+                            if (tempElement) tempElement.remove();
+                            
+                            if (data.status === 'success' && data.paths.length > 0) {
+                                // If server found matching paths, use the first one
+                                addFolder(data.paths[0]);
+                            } else {
+                                // If not found or error, prompt user for absolute path
+                                promptForAbsolutePath(entry.name);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error finding folder path:', error);
+                            // Remove the temporary indicator
+                            const tempElement = document.getElementById(tempId);
+                            if (tempElement) tempElement.remove();
+                            
+                            // Fall back to manual path entry
+                            promptForAbsolutePath(entry.name);
+                        });
+                    }
+                }
+            }
+            
+            // Function to prompt user for absolute path with better guidance
+            function promptForAbsolutePath(folderName) {
+                // Detect OS for better path suggestions
+                const isWindows = navigator.platform.indexOf('Win') > -1;
+                const isMac = navigator.platform.indexOf('Mac') > -1;
+                
+                let defaultPath = '';
+                let osSpecificHelp = '';
+                
+                if (isWindows) {
+                    defaultPath = `E:\\${folderName}`;
+                    osSpecificHelp = 'For Windows, paths typically look like: E:\\Folder\\Subfolder';
+                } else if (isMac) {
+                    defaultPath = `/Users/${folderName}`;
+                    osSpecificHelp = 'For macOS, paths typically look like: /Users/username/Folder';
+                } else {
+                    defaultPath = `/home/${folderName}`;
+                    osSpecificHelp = 'For Linux, paths typically look like: /home/username/Folder';
+                }
+                
+                const absolutePath = prompt(
+                    `Please enter the absolute path to folder "${folderName}":\n\n` +
+                    `${osSpecificHelp}\n\n` +
+                    `Tip: You can copy the path from your file explorer and paste it here.`,
+                    defaultPath
+                );
+                
+                if (absolutePath) {
+                    addFolder(absolutePath);
+                }
+            }
+            
+            // Improved function to find folder path
+            function findFolderPath(folderName) {
+                // Create a unique ID for the loading indicator
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                
+                // Create a temporary UI indicator for the folder being added
+                const tempIndicator = document.createElement('div');
+                tempIndicator.className = 'selected-folder pending';
+                tempIndicator.id = tempId;
+                tempIndicator.innerHTML = `
+                    <span>${folderName}</span>
+                    <span class="ms-2">
+                        <i class="fas fa-spinner fa-spin"></i> Finding path...
+                    </span>
+                `;
+                selectedFoldersContainer.appendChild(tempIndicator);
+                
+                // Call the server-side API to find the folder with more context
+                fetch('/api/find_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        folder_name: folderName,
+                        context: window.location.pathname 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Remove the temporary indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    if (data.status === 'success' && data.paths.length > 0) {
+                        // Use the first valid path found
+                        addFolder(data.paths[0]);
+                    } else if (data.paths.length === 0) {
+                        // No path found, ask the user
+                        promptForAbsolutePath(folderName);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error finding path for ${folderName}:`, error);
+                    // Remove the temporary indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    // Fallback to manual path entry
+                    promptForAbsolutePath(folderName);
+                });
+            }
+            
+            // Function to handle folder selection from input[type=file]
+            function handleFolderSelection(files) {
+                if (!files || files.length === 0) return;
+                
+                // Create a temporary indicator for processing
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                const tempIndicator = document.createElement('div');
+                tempIndicator.className = 'selected-folder pending';
+                tempIndicator.id = tempId;
+                tempIndicator.innerHTML = `
+                    <span>Processing selected folder...</span>
+                    <span class="ms-2"><i class="fas fa-spinner fa-spin"></i></span>
+                `;
+                selectedFoldersContainer.appendChild(tempIndicator);
+                
+                // Get the root folder name from the first file
+                const firstFilePath = files[0].webkitRelativePath || '';
+                
+                if (!firstFilePath) {
+                    // Remove the temp indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    alert('Could not determine the folder path. Please try dragging the folder or entering the path manually.');
+                    return;
+                }
+                
+                // Extract the root folder name (first segment of the path)
+                const rootFolderName = firstFilePath.split('/')[0];
+                
+                if (!rootFolderName) {
+                    // Remove the temp indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    alert('Could not determine the folder name. Please enter the path manually.');
+                    return;
+                }
+                
+                // Try finding the path with more information
+                // Gather sample file paths to help with path detection
+                const samplePaths = [];
+                for (let i = 0; i < Math.min(5, files.length); i++) {
+                    if (files[i].webkitRelativePath) {
+                        samplePaths.push(files[i].webkitRelativePath);
+                    }
+                }
+                
+                // Call the API with enhanced information
+                fetch('/api/find_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        folder_name: rootFolderName,
+                        sample_paths: samplePaths,
+                        file_count: files.length
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Remove the temporary indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    if (data.status === 'success' && data.paths.length > 0) {
+                        // Use the first valid path found
+                        addFolder(data.paths[0]);
+                    } else {
+                        // No path found, ask the user with better context
+                        promptForAbsolutePath(rootFolderName);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error finding path for ${rootFolderName}:`, error);
+                    // Remove the temporary indicator
+                    const tempElement = document.getElementById(tempId);
+                    if (tempElement) tempElement.remove();
+                    
+                    // Fall back to manual path entry
+                    promptForAbsolutePath(rootFolderName);
+                });
+            }
+            
+            // Start button click handler
+            startBtn.addEventListener('click', function() {
+                if (selectedFolders.length < 2) {
+                    alert('Please select at least 2 folders to compare.');
+                    return;
+                }
+                
+                // Send selected folders to the server
+                fetch('/api/select_folders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        folders: selectedFolders
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Redirect to the main page
+                        window.location.href = '/';
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error selecting folders:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            });
+            
+            // Function to fetch available folders
+            function fetchAvailableFolders() {
+                fetch('/api/available_folders')
+                    .then(response => response.json())
+                    .then(data => {
+                        availableFoldersContainer.innerHTML = '';
+                        
+                        if (!data.folders || data.folders.length === 0) {
+                            availableFoldersContainer.innerHTML = '<div class="alert alert-warning">No folders found in the current directory.</div>';
+                            return;
+                        }
+                        
+                        const folderButtonGroup = document.createElement('div');
+                        folderButtonGroup.className = 'btn-group-wrap d-flex flex-wrap gap-2';
+                        
+                        data.folders.forEach(folder => {
+                            const folderBtn = document.createElement('button');
+                            folderBtn.className = 'btn btn-outline-secondary';
+                            folderBtn.textContent = folder.name;
+                            folderBtn.setAttribute('title', folder.path);
+                            folderBtn.addEventListener('click', function() {
+                                // Use the full path directly
+                                addFolder(folder.path);
+                            });
+                            folderButtonGroup.appendChild(folderBtn);
+                        });
+                        
+                        availableFoldersContainer.appendChild(folderButtonGroup);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching folders:', error);
+                        availableFoldersContainer.innerHTML = '<div class="alert alert-danger">Error loading folders. Please refresh the page.</div>';
+                    });
+            }
+            
+            // Function to add a folder to the selected list
+            function addFolder(folder, displayPath) {
+                // Normalize folder path
+                folder = folder.trim();
+                
+                if (selectedFolders.includes(folder)) {
+                    return; // Already added
+                }
+                
+                if (selectedFolders.length >= 8) {
+                    alert('You can select a maximum of 8 folders.');
+                    return;
+                }
+                
+                // Add folder with validation
+                fetch('/api/validate_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ path: folder })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Use the validated path from server
+                        const validatedPath = data.path || folder;
+                        
+                        // Add to selected folders
+                        selectedFolders.push(validatedPath);
+                        updateSelectedFoldersUI();
+                        
+                        // Enable start button if at least 2 folders are selected
+                        startBtn.disabled = selectedFolders.length < 2;
+                    } else {
+                        // Show error
+                        alert(`Error: ${data.message || 'Invalid folder path'}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error validating folder:', error);
+                    
+                    // Fall back to client-side validation
+                    selectedFolders.push(folder);
+                    updateSelectedFoldersUI();
+                    
+                    // Enable start button if at least 2 folders are selected
+                    startBtn.disabled = selectedFolders.length < 2;
+                });
+            }
+            
+            // Function to remove a folder from the selected list
+            function removeFolder(folder) {
+                selectedFolders = selectedFolders.filter(f => f !== folder);
+                updateSelectedFoldersUI();
+                
+                // Disable start button if less than 2 folders are selected
+                startBtn.disabled = selectedFolders.length < 2;
+            }
+            
+            // Function to update the selected folders UI
+            function updateSelectedFoldersUI() {
+                selectedFoldersContainer.innerHTML = '';
+                
+                if (selectedFolders.length === 0) {
+                    selectedFoldersContainer.innerHTML = '<p class="text-muted text-center">No folders selected yet</p>';
+                    return;
+                }
+                
+                selectedFolders.forEach(folder => {
+                    const folderElement = document.createElement('div');
+                    folderElement.className = 'selected-folder';
+                    folderElement.innerHTML = `
+                        <span>${folder}</span>
+                        <span class="remove-btn" data-folder="${folder}">
+                            <i class="fas fa-times-circle"></i>
+                        </span>
+                    `;
+                    selectedFoldersContainer.appendChild(folderElement);
+                    
+                    // Add remove button event listener
+                    folderElement.querySelector('.remove-btn').addEventListener('click', function() {
+                        removeFolder(folder);
+                    });
+                });
+            }
+            
+            // Initialize UI
+            updateSelectedFoldersUI();
+        });
+    </script>
+</body>
+</html> 

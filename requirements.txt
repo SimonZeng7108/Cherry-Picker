@@ -1,0 +1,4 @@
+Pillow>=10.0.0  # For image processing and manipulation
+Flask>=2.0.0  # For web server functionality
+Flask-Cors>=3.0.10  # For handling CORS if needed
+# tkinter is included with standard Python installation but not needed for web GUI 
