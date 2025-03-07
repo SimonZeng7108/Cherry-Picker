@@ -63,6 +63,33 @@
    ```
 
 ---
+```
+
+**📂 GroundTruth**
+- 🖼️ **Image1.png**
+- 🖼️ **Image2.png**
+- 🖼️ **Image3.png**
+
+**📂 Model1**
+- 🖼️ **Image1.png**
+- 🖼️ **Image2.png**
+- 🖼️ **Image3.png**
+
+**📂 Model2**
+- 🖼️ **Image1.png**
+- 🖼️ **Image2.png**
+- 🖼️ **Image3.png**
+
+**📂 Cherry**
+- 🖼️ **GroundTruth_Image1.png**
+- 🖼️ **Model1_Image1.png**
+- 🖼️ **Model2_Image1.png**
+
+**📂 Cherry_prune**
+- 🖼️ **GroundTruth_Image1_xCENTER_yCENTER_WIDTHxHEIGHT.png**
+- 🖼️ **Model1_Image1_xCENTER_yCENTER_WIDTHxHEIGHT.png**
+- 🖼️ **Model2_Image1_xCENTER_yCENTER_WIDTHxHEIGHT.png**
+```
 
 ## 🚀 Usage
 
